@@ -1,0 +1,11 @@
+# Repos de las apps (se versionan por separado)
+semana-ingenieria-app-back/
+semana-ingeniera-app-front/
+
+# Secretos y datos locales: NUNCA commitear
+.env
+data/
+
+# Basura
+*.bak
+*.log

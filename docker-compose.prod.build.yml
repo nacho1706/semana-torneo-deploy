@@ -1,0 +1,35 @@
+# Build de producción — corre en tu máquina.
+# Uso:
+#   DOCKER_USER=nachoalbarracin PROJECT=semana-torneo \
+#   NEXT_PUBLIC_API_URL=https://api.tu-dominio.com/api NEXT_PUBLIC_CLAVE_ADMIN=... \
+#   docker compose -f docker-compose.prod.build.yml build
+# (o exportá esas variables en tu .env local; ver build-and-push.sh)
+services:
+  backend:
+    image: ${DOCKER_USER:?set DOCKER_USER}/${PROJECT:?set PROJECT}-backend:latest
+    build:
+      context: ./semana-ingenieria-app-back
+      dockerfile: Dockerfile
+      # Una sola plataforma = la del VPS (ver build-and-push.sh).
+      platforms:
+        - ${PLATFORMS:-linux/arm64}
+    networks:
+      - appnet
+
+  frontend:
+    image: ${DOCKER_USER:?set DOCKER_USER}/${PROJECT:?set PROJECT}-frontend:latest
+    build:
+      context: ./semana-ingeniera-app-front
+      dockerfile: Dockerfile
+      # Una sola plataforma = la del VPS (ver build-and-push.sh).
+      platforms:
+        - ${PLATFORMS:-linux/arm64}
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_CLAVE_ADMIN: ${NEXT_PUBLIC_CLAVE_ADMIN:?set NEXT_PUBLIC_CLAVE_ADMIN}
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    driver: bridge

@@ -1,0 +1,45 @@
+# Producción — corre en el VPS.
+# Uso:
+#   1. cp .env.example .env   # y completar CLOUDFLARE_TUNNEL_TOKEN, APP_KEY, APP_URL
+#   2. mkdir -p data && touch data/database.sqlite && chmod 666 data/database.sqlite
+#   3. docker compose -f docker-compose.prod.yaml pull
+#   4. docker compose -f docker-compose.prod.yaml up -d
+#   5. docker compose -f docker-compose.prod.yaml exec backend php artisan migrate --force
+#
+# Todo el tráfico externo entra por cloudflared: este compose no publica puertos.
+# Los hostnames públicos (qué URL va a cada servicio) se configuran en el
+# dashboard de Cloudflare Zero Trust, no acá.
+services:
+  backend:
+    image: ${BACKEND_IMAGE:-nachoalbarracin/semana-torneo-backend:latest}
+    container_name: backend-${PROJECT:-semana-torneo}-prod
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # Persiste el sqlite fuera del contenedor (layout estándar apache).
+      - ./data/database.sqlite:/var/www/html/database/database.sqlite
+    networks:
+      - appnet
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-nachoalbarracin/semana-torneo-frontend:latest}
+    container_name: frontend-${PROJECT:-semana-torneo}-prod
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - appnet
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-${PROJECT:-semana-torneo}-prod
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    driver: bridge
